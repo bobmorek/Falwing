@@ -189,7 +189,8 @@ footer p{margin:0}
 
   <footer>
     <p><strong>Not a safety service.</strong> Scores are a guide from forecast models. Offshore wind at the beaches blows you out into Falmouth Bay; if in doubt, don't go. Emergency on the water: call 999 or VHF 16 and ask for the Coastguard.</p>
-    <p>Wind and weather: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0). Swell and modelled tide: Open-Meteo Marine. Measured wind: RNAS Culdrose METAR via <a href="https://aviationweather.gov/" target="_blank" rel="noopener">aviationweather.gov</a>. Tide here is modelled, not an official prediction; never use it for navigation.</p>
+    <p><strong>Where the data comes from.</strong> Wind, gusts and daylight from the UK Met Office model (UKV, about 2 km grid), through <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, used under CC BY 4.0. Swell and modelled tide from Open-Meteo Marine, under the same licence. Measured wind from the RNAS Culdrose weather report (METAR), through <a href="https://aviationweather.gov/" target="_blank" rel="noopener">aviationweather.gov</a>. Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors under the ODbL, with map tiles by <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a> and seamarks from <a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a> (CC BY-SA 2.0).</p>
+    <p>The spot scores, notes and code are FAL Wing's own. Spot settings are set by hand and may be wrong. The tide is modelled, not an official prediction: not for navigation, and never for timing a crossing.</p>
     <div class="links">
       <a href="https://www.windfinder.com/forecast/pendennis_point_falmouth" target="_blank" rel="noopener">Windfinder Pendennis</a>
       <a href="https://coastalmonitoring.org/realtimedata/" target="_blank" rel="noopener">Wave buoys (Porthleven, Looe)</a>
@@ -318,7 +319,7 @@ async function loadLive(){
   const wx=`https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}`+
     `&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m,temperature_2m,precipitation_probability,is_day`+
     `&current=wind_speed_10m,wind_gusts_10m,wind_direction_10m,temperature_2m`+
-    `&daily=sunrise,sunset&wind_speed_unit=kn&timezone=${encodeURIComponent(TZ)}&forecast_days=4`;
+    `&daily=sunrise,sunset&models=ukmo_seamless&wind_speed_unit=kn&timezone=${encodeURIComponent(TZ)}&forecast_days=4`;
   const mr=`https://marine-api.open-meteo.com/v1/marine?latitude=${BAY.lat}&longitude=${BAY.lon}`+
     `&hourly=wave_height,wave_direction,wave_period,swell_wave_height,swell_wave_direction,swell_wave_period,wind_wave_height,sea_level_height_msl,sea_surface_temperature`+
     `&timezone=${encodeURIComponent(TZ)}&forecast_days=4`;
