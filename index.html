@@ -197,7 +197,7 @@ footer p{margin:0}
 
   <footer>
     <p><strong>Not a safety service.</strong> Scores are a guide from forecast models. Offshore wind at the beaches blows you out into Falmouth Bay; if in doubt, don't go. Emergency on the water: call 999 or VHF 16 and ask for the Coastguard.</p>
-    <p><strong>Where the data comes from.</strong> Wind, gusts and daylight from the UK Met Office model (UKV, about 2 km grid), through <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, used under CC BY 4.0. Swell and modelled tide from Open-Meteo Marine, under the same licence. Measured waves from the Porthleven and Looe Bay buoys: real-time data from the Regional Coastal Monitoring Programme (<a href="https://coastalmonitoring.org/" target="_blank" rel="noopener">coastalmonitoring.org</a>), made freely available under the Open Government Licence; these are real-time data and are not quality-controlled. Measured wind from the RNAS Culdrose weather report (METAR), through <a href="https://aviationweather.gov/" target="_blank" rel="noopener">aviationweather.gov</a>. Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors under the ODbL and map tiles from the OpenStreetMap Foundation, with seamarks from <a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a> (CC BY-SA 2.0).</p>
+    <p><strong>Where the data comes from.</strong> Wind, gusts and daylight from the UK Met Office model (UKV, about 2 km grid), through <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, used under CC BY 4.0. Swell and modelled tide from Open-Meteo Marine, under the same licence. Measured waves from the Porthleven and Looe Bay buoys: real-time data from the Regional Coastal Monitoring Programme (<a href="https://coastalmonitoring.org/" target="_blank" rel="noopener">coastalmonitoring.org</a>), made freely available under the Open Government Licence; these are real-time data and are not quality-controlled. Measured wind from the RNAS Culdrose weather report (METAR), through <a href="https://aviationweather.gov/" target="_blank" rel="noopener">aviationweather.gov</a>. Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors under the ODbL, with map tiles by <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a> and seamarks from <a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a> (CC BY-SA 2.0).</p>
     <p>The spot scores, notes and code are FAL Wing's own. Spot settings are set by hand and may be wrong. The tide is modelled, not an official prediction: not for navigation, and never for timing a crossing.</p>
     <div class="links">
       <a href="https://www.windfinder.com/forecast/pendennis_point_falmouth" target="_blank" rel="noopener">Windfinder Pendennis</a>
@@ -232,6 +232,7 @@ const METAR_ID = "EGDR";                      // RNAS Culdrose
 /* Wave buoys (Regional Coastal Monitoring Programme). Request a free key for this site's
    address at https://coastalmonitoring.org/ccoresources/api/ and paste it here. One key covers both. */
 const CCO_KEY = "375549311f90ebbb37bc4cd2d221bc46";
+const CARTO_KEY = "cb1_4mdf_1_2cedb1d2921aaca1f5e4951b"; // basemap tiles
 const BUOYS = [
   {id:"porthleven", name:"Porthleven", sensor:"Porthleven", chart:107, side:"20 mi W",
    note:"West of the Lizard. Reads Atlantic swell before the Lizard blocks most of it from the bay; a rise here is an early warning."},
@@ -495,9 +496,10 @@ function darkTheme(){
 function setBase(){
   if(!MAP) return;
   if(BASE) MAP.removeLayer(BASE);
-  BASE=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
-    maxZoom:19, className:darkTheme()?"tiles-dark":"",
-    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(MAP);
+  const style=darkTheme()?"dark_all":"light_all";
+  BASE=L.tileLayer(`https://{s}.basemaps.cartocdn.com/${style}/{z}/{x}/{y}{r}.png?key=${CARTO_KEY}`,{
+    subdomains:"abcd",maxZoom:19,
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'}).addTo(MAP);
   BASE.bringToBack();
 }
 function initMap(){
