@@ -624,7 +624,8 @@ function updateMap(){
     const sh=mh.swell_wave_height&&mh.swell_wave_height[B.midx[t]];
     SWELL_NOW = sh!=null&&sh>=0.25 ? {hs:sh,tp:mh.swell_wave_period[B.midx[t]],dir:mh.swell_wave_direction[B.midx[t]]} : {hs,tp,dir};
     if(window.FalSwell&&SWELL_NOW.dir!=null&&SWELL_NOW.tp) FalSwell.setSwell(SWELL_NOW);
-    const lab=`<b>Bay swell</b> ${r1(hs)} m &middot; ${r0(tp)} s &middot; from ${compass(dir)}`;
+    const lab=`<b>Swell</b> ${r1(SWELL_NOW.hs)} m &middot; ${r0(SWELL_NOW.tp)} s &middot; from ${compass(SWELL_NOW.dir)}`;
+
     if(!bayMarker){bayMarker=L.control({position:"bottomleft"});
       bayMarker.onAdd=()=>{const d=L.DomUtil.create("div","leaflet-tooltip mk-lab swell-chip");return d;};
       bayMarker.addTo(MAP);}
