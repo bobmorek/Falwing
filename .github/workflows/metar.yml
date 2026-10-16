@@ -26,4 +26,5 @@ jobs:
           git add data/metar.json
           git diff --cached --quiet && exit 0
           git commit -m "Update Culdrose METAR [skip ci]"
+          git pull --rebase -q origin main
           git push

@@ -17,7 +17,7 @@
 /* Layout: single phone-first column. Verdict up top, then live obs and sea state, then one card per spot, then the 3-day windows. */
 :root{
   --bg:#EEF3F4; --surface:#FFFFFF; --ink:#0B2530; --muted:#4F6670; --line:#CBD8DC;
-  --sea:#2A7FA8; --sea-soft:#D6E9F1; --land:#D9D2C3; --signal:#E0A400;
+  --sea:#2A7FA8; --sea-soft:#D6E9F1; --land:#E9E4D8; --coast:#6F858D; --signal:#E0A400;
   --good:#1F8A5B; --ok:#C88A00; --poor:#8A9AA0; --bad:#C2412D;
   --display:"Barlow Condensed","Arial Narrow",sans-serif;
   --body:"Source Sans 3","Segoe UI",Helvetica,Arial,sans-serif;
@@ -25,11 +25,11 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0A1A22; --surface:#10262F; --ink:#E6F0F2; --muted:#93AAB2; --line:#21414C;
-  --sea:#5BB3D9; --sea-soft:#163A48; --land:#3A3A33; --signal:#FFC233;
+  --sea:#5BB3D9; --sea-soft:#0F2E3A; --land:#1B2A2F; --coast:#5E7D88; --signal:#FFC233;
   --good:#3CC488; --ok:#E6AE2E; --poor:#6E8189; --bad:#F06A52; color-scheme:dark;}}
 :root[data-theme="dark"]{
   --bg:#0A1A22; --surface:#10262F; --ink:#E6F0F2; --muted:#93AAB2; --line:#21414C;
-  --sea:#5BB3D9; --sea-soft:#163A48; --land:#3A3A33; --signal:#FFC233;
+  --sea:#5BB3D9; --sea-soft:#0F2E3A; --land:#1B2A2F; --coast:#5E7D88; --signal:#FFC233;
   --good:#3CC488; --ok:#E6AE2E; --poor:#6E8189; --bad:#F06A52; color-scheme:dark;}
 
 *{box-sizing:border-box}
@@ -80,7 +80,14 @@ header.top{display:flex;align-items:center;justify-content:space-between;gap:12p
 .leaflet-tooltip.mk-lab{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font:600 12px/1.3 var(--body);box-shadow:none;white-space:nowrap}
 .leaflet-tooltip.mk-lab::before{display:none}
 .leaflet-tooltip.mk-lab b{font-family:var(--display);font-size:13px}
-.leaflet-container{font-family:var(--body)}
+.leaflet-container{font-family:var(--body);background:var(--sea-soft)}
+.land{fill:var(--land);stroke:none}
+.coast{stroke:var(--coast);fill:none}
+.swell-canvas{pointer-events:none}
+.swell-chip{position:static;margin:0 0 8px 10px!important;pointer-events:none}
+.place{transform:translate(-50%,-50%);display:inline-block;white-space:nowrap;font:600 10.5px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.place.water{font:italic 500 12px/1 var(--body);letter-spacing:.02em;text-transform:none;color:var(--sea);opacity:.85}
+.leaflet-control-layers{background:var(--surface);color:var(--ink);border:1px solid var(--line)!important}
 .tiles-dark{filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.6)}
 .leaflet-control-attribution{font-size:10px}
 .spot.hl{outline:2px solid var(--signal);outline-offset:2px}
@@ -168,7 +175,7 @@ footer p{margin:0}
       <input id="mapHour" type="range" min="0" max="24" step="1" value="0" aria-label="Hours ahead shown on the map">
       <span class="lab" id="mapHourLabel">Now</span>
     </div>
-    <p class="mapnote">Arrows show where the wind is coming from. Tap a spot for its forecast. Drag the slider to look up to 24 hours ahead.</p>
+    <p class="mapnote">Arrows show where the wind is coming from. Moving lines show the bay swell direction, spaced by period; they are illustrative and ignore shelter. Tap a spot for its forecast, or drag the slider to look up to 24 hours ahead.</p>
   </section>
 
   <details class="settings" id="settings">
@@ -227,7 +234,7 @@ const SPOTS = [
   {id:"durgan", name:"Durgan", lat:50.1025, lon:-5.1135, facing:190, enclosed:true, swellExp:0.12, tidal:true,
    note:"Sheltered river spot below Glendurgan. Wind funnels along the river in E and W winds and goes patchy in northerlies off the valley. Moorings and the Helford ferry nearby; shingle launch best around mid to high water."}
 ];
-const LABEL_SIDE = {pendennis:"top", gylly:"bottom", swanpool:"top", mylor:"right", helford:"right", grebe:"top", durgan:"left"};
+const LABEL_SIDE = {pendennis:"right", gylly:"bottom", swanpool:"left", mylor:"right", helford:"right", grebe:"top", durgan:"bottom"};
 const SHORT = {pendennis:"Pendennis", helford:"Helford"};
 const BAY = {lat:50.11, lon:-5.02};          // marine point for swell and modelled tide
 const METAR_ID = "EGDR";                      // RNAS Culdrose
@@ -495,26 +502,91 @@ function darkTheme(){
   if(t) return t==="dark";
   return window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches;
 }
-function setBase(){
-  if(!MAP) return;
-  if(BASE) MAP.removeLayer(BASE);
-  const style=darkTheme()?"dark_all":"light_all";
-  BASE=L.tileLayer(`https://{s}.basemaps.cartocdn.com/${style}/{z}/{x}/{y}{r}.png?key=${CARTO_KEY}`,{
-    subdomains:"abcd",maxZoom:19,
-    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'}).addTo(MAP);
-  BASE.bringToBack();
-}
+const PLACES=[
+  ["Falmouth",50.1560,-5.0780],["Penryn",50.1690,-5.1070],["St Mawes",50.1610,-5.0140],
+  ["Helford",50.0880,-5.1360],["Maenporth",50.1250,-5.0930],
+  ["Carrick Roads",50.1930,-5.0380,1],["Falmouth Bay",50.1150,-5.0000,1],["Helford River",50.0985,-5.1560,1],["Percuel",50.1720,-4.9860,1]
+];
+const VIEW=[[50.072,-5.185],[50.205,-4.935]];   // first view: Helford to St Mawes
+let STREET=null, SEAMARKS=null, SWELL_LAYER=null, SWELL_NOW=null;
+
+/* Animated swell crests drawn on a canvas below the land, so they only show on water. Illustrative:
+   spacing and speed scale with period, strength with height; refraction and shelter are not modelled. */
+const SwellLayer = (typeof L!=="undefined" && L.Layer) ? L.Layer.extend({
+  onAdd(map){
+    this._map=map; this._c=L.DomUtil.create("canvas","swell-canvas",map.getPane("swell"));
+    this._ctx=this._c.getContext("2d"); this._visible=true; this._last=0;
+    this._reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+    map.on("moveend zoomend resize viewreset",this._reset,this); map.on("move",this._place,this);
+    if("IntersectionObserver" in window){this._io=new IntersectionObserver(e=>{this._visible=e[0].isIntersecting;},{threshold:0});this._io.observe(map.getContainer());}
+    this._reset(); this._tick=this._tick.bind(this); this._raf=requestAnimationFrame(this._tick);
+  },
+  onRemove(map){cancelAnimationFrame(this._raf); if(this._io) this._io.disconnect();
+    map.off("moveend zoomend resize viewreset",this._reset,this); map.off("move",this._place,this); this._c.remove();},
+  _place(){L.DomUtil.setPosition(this._c,this._map.containerPointToLayerPoint([0,0]));},
+  _reset(){const sz=this._map.getSize(), d=window.devicePixelRatio||1;
+    this._c.width=sz.x*d; this._c.height=sz.y*d; this._c.style.width=sz.x+"px"; this._c.style.height=sz.y+"px";
+    this._ctx.setTransform(d,0,0,d,0,0); this._place(); this._draw(performance.now());},
+  _tick(t){ this._raf=requestAnimationFrame(this._tick);
+    if(this._reduce||!this._visible||document.hidden||t-this._last<33) return; this._last=t; this._draw(t);},
+  _draw(t){
+    const ctx=this._ctx, sz=this._map.getSize(), w=sz.x, h=sz.y; ctx.clearRect(0,0,w,h);
+    const sw=SWELL_NOW; if(!sw||sw.hs==null||sw.dir==null||!sw.tp) return;
+    const b=(sw.dir+180)*Math.PI/180, vx=Math.sin(b), vy=-Math.cos(b), ux=Math.cos(b), uy=Math.sin(b);
+    const sp=clamp(14+2.6*sw.tp,22,64), speed=sp/(sw.tp*0.35), phase=((t/1000)*speed)%sp;
+    const D=Math.hypot(w,h), n=Math.ceil(D/(2*sp))+1;
+    const col=getComputedStyle(document.documentElement).getPropertyValue("--sea").trim()||"#2A7FA8";
+    ctx.strokeStyle=col; ctx.lineCap="round";
+    ctx.globalAlpha=0.16+0.34*Math.min(sw.hs/2.5,1); ctx.lineWidth=1+Math.min(sw.hs,3)*0.6;
+    ctx.setLineDash([22+sw.hs*12, 10+sp*0.4]);
+    for(let k=-n;k<=n;k++){
+      const d=k*sp+phase, cx=w/2+vx*d, cy=h/2+vy*d;
+      ctx.lineDashOffset=(k*41)%97; ctx.beginPath();
+      for(let s=-D/2;s<=D/2;s+=14){
+        const wob=Math.sin(s*0.018+k*1.7)*2.2;
+        const x=cx+ux*s+vx*wob, y=cy+uy*s+vy*wob;
+        if(s===-D/2) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha=1; ctx.setLineDash([]);
+  }
+}) : null;
+
 function initMap(){
   if(MAP) return true;
   const el=$("map");
   if(typeof L==="undefined"){el.innerHTML=`<p class="small muted" style="padding:14px">The map library couldn't load here. It appears when the page is opened from a normal web address.</p>`;return false;}
-  MAP=L.map(el,{zoomControl:true,attributionControl:true,scrollWheelZoom:false,zoomSnap:0.25});
-  setBase();
-  L.tileLayer("https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png",{maxZoom:18,opacity:.9,
-    attribution:'Seamarks &copy; <a href="https://www.openseamap.org">OpenSeaMap</a>'}).addTo(MAP);
-  MAP.fitBounds(L.latLngBounds(SPOTS.map(s=>[s.lat,s.lon]).concat([[BAY.lat,BAY.lon]])),{paddingTopLeft:[56,28],paddingBottomRight:[56,22]});
-  if(window.matchMedia){const mq=matchMedia("(prefers-color-scheme: dark)");(mq.addEventListener?mq.addEventListener("change",setBase):mq.addListener(setBase));}
-  new MutationObserver(setBase).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+  MAP=L.map(el,{zoomControl:true,attributionControl:true,scrollWheelZoom:false,zoomSnap:0.25,minZoom:10,maxZoom:16});
+  MAP.createPane("swell").style.zIndex=405;
+  MAP.createPane("land").style.zIndex=410;
+  MAP.createPane("labels").style.zIndex=420; MAP.getPane("labels").style.pointerEvents="none";
+  MAP.fitBounds(VIEW);
+
+  STREET=L.tileLayer("",{subdomains:"abcd",maxZoom:19,
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'});
+  STREET.getTileUrl=function(c){const st=darkTheme()?"dark_all":"light_all", sd="abcd"[(c.x+c.y)%4];
+    return `https://${sd}.basemaps.cartocdn.com/${st}/${c.z}/${c.x}/${c.y}${L.Browser.retina?"@2x":""}.png?key=${CARTO_KEY}`;};
+  SEAMARKS=L.tileLayer("https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png",{maxZoom:18,opacity:.9,
+    attribution:'Seamarks &copy; <a href="https://www.openseamap.org">OpenSeaMap</a>'});
+  const chart=L.layerGroup().addTo(MAP);
+  SWELL_LAYER=SwellLayer?new SwellLayer():null; if(SWELL_LAYER) SWELL_LAYER.addTo(MAP);
+
+  fetch("data/coast.json").then(r=>{if(!r.ok) throw new Error(r.status);return r.json();}).then(c=>{
+    L.geoJSON(c.land,{pane:"land",interactive:false,style:{className:"land",stroke:false,fillOpacity:1}}).addTo(chart);
+    L.geoJSON(c.coast,{pane:"land",interactive:false,style:{className:"coast",weight:1.2,opacity:1,fill:false}}).addTo(chart);
+    const bb=c.bbox; MAP.setMaxBounds([[bb[1],bb[0]],[bb[3],bb[2]]]).options.maxBoundsViscosity=0.8;
+    MAP.attributionControl.addAttribution('Coastline &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors');
+  }).catch(()=>{ STREET.addTo(MAP); });   // no outline file yet: fall back to the street map
+
+  PLACES.forEach(([n,la,lo,water])=>L.marker([la,lo],{pane:"labels",interactive:false,keyboard:false,
+    icon:L.divIcon({className:"mk",html:`<span class="place${water?" water":""}">${n}</span>`,iconSize:[0,0]})}).addTo(chart));
+
+  const overlays={"Seamarks":SEAMARKS}; if(SWELL_LAYER) overlays["Swell lines"]=SWELL_LAYER;
+  L.control.layers({"Coastline":chart,"Street map":STREET},overlays,{position:"topright"}).addTo(MAP);
+  const redrawTheme=()=>{ if(MAP.hasLayer(STREET)) STREET.redraw(); };
+  if(window.matchMedia){const mq=matchMedia("(prefers-color-scheme: dark)");(mq.addEventListener?mq.addEventListener("change",redrawTheme):mq.addListener(redrawTheme));}
+  new MutationObserver(redrawTheme).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
   return true;
 }
 function windMarkerSvg(score,dir,w){
@@ -554,11 +626,12 @@ function updateMap(){
   const mh=B.mh;
   if(mh&&B.midx[t]!=null){
     const hs=mh.wave_height[B.midx[t]], tp=mh.wave_period[B.midx[t]], dir=mh.wave_direction[B.midx[t]];
-    const icon=L.divIcon({className:"mk",html:swellMarkerSvg(dir),iconSize:[64,64],iconAnchor:[32,32]});
-    const lab=`<b>Swell</b> ${r1(hs)} m ${r0(tp)} s ${compass(dir)}`;
-    if(!bayMarker){bayMarker=L.marker([BAY.lat,BAY.lon],{icon,interactive:false}).addTo(MAP);
-      bayMarker.bindTooltip(lab,{permanent:true,direction:"bottom",offset:[0,14],className:"mk-lab"});}
-    else {bayMarker.setIcon(icon);bayMarker.setTooltipContent(lab);}
+    SWELL_NOW={hs,tp,dir}; if(SWELL_LAYER&&SWELL_LAYER._map) SWELL_LAYER._draw(performance.now());
+    const lab=`<b>Bay swell</b> ${r1(hs)} m &middot; ${r0(tp)} s &middot; from ${compass(dir)}`;
+    if(!bayMarker){bayMarker=L.control({position:"bottomleft"});
+      bayMarker.onAdd=()=>{const d=L.DomUtil.create("div","leaflet-tooltip mk-lab swell-chip");return d;};
+      bayMarker.addTo(MAP);}
+    bayMarker.getContainer().innerHTML=lab;
   }
 }
 $("mapHour").addEventListener("input",updateMap);
