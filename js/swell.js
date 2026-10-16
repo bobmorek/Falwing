@@ -179,7 +179,7 @@
     const crest = F.crest || (F.crest = new Float32Array(n)), foam = F.foam || (F.foam = new Float32Array(n));
     for (let k = 0; k < n; k++) { const r = F.rel[k]; if (!r) { crest[k] = 0; foam[k] = 0; continue; }
       const Hl = Math.min(Hs*r, 0.78*Math.max(depth[k], 0.6));
-      const rr = Math.min(1, Hl/Math.max(0.3, Hs)); crest[k] = rr < 0.12 ? 0 : Math.pow(rr, 0.8) * (0.6 + 0.4*Math.min(Hs/2, 1));
+      const rr = Math.min(1, Hl/Math.max(0.3, Hs)); crest[k] = rr < 0.05 ? 0 : Math.pow(rr, 0.8) * (0.6 + 0.4*Math.min(Hs/2, 1));
       foam[k] = coastal[k] && Hl > 0.15 ? Math.min(1, Hl/0.6) : 0; }
   }
 
