@@ -1,0 +1,29 @@
+name: Fetch Culdrose METAR
+on:
+  schedule:
+    - cron: "*/20 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: metar
+  cancel-in-progress: false
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download METAR
+        run: |
+          curl -sf --retry 3 -A "FAL Wing (github.com/bobmorek/Falwing)" \
+            "https://aviationweather.gov/api/data/metar?ids=EGDR&format=json&hours=3" -o /tmp/metar.json
+          python3 -c "import json;d=json.load(open('/tmp/metar.json'));assert isinstance(d,list)"
+          mkdir -p data && cp /tmp/metar.json data/metar.json
+      - name: Commit if changed
+        run: |
+          git config user.name "falwing-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/metar.json
+          git diff --cached --quiet && exit 0
+          git commit -m "Update Culdrose METAR [skip ci]"
+          git push
