@@ -93,6 +93,11 @@ header.top{display:flex;align-items:center;justify-content:space-between;gap:12p
 .kv .v small{font-size:.95rem;color:var(--muted);font-weight:500}
 .kv .k{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 .tide svg,.spark{width:100%;height:auto;display:block}
+.buoys{display:flex;flex-direction:column;gap:14px}
+.buoy+.buoy{border-top:1px solid var(--line);padding-top:12px}
+.buoy h3{font-size:1.15rem;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.buoy h3 span{font-family:var(--body);font-weight:400;font-size:.8rem;color:var(--muted);letter-spacing:0}
+.buoy .kv .v{font-size:1.6rem}
 
 /* Settings */
 details.settings{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
@@ -179,7 +184,7 @@ footer p{margin:0}
   <div class="panels">
     <section class="panel" id="obs"><h2>Measured wind</h2><p class="muted small">Loading…</p></section>
     <section class="panel" id="sea"><h2>Swell in the bay</h2><p class="muted small">Loading…</p></section>
-    <section class="panel" id="buoy"><h2>Porthleven buoy</h2><p class="muted small">Loading…</p></section>
+    <section class="panel" id="buoy"><h2>Wave buoys</h2><p class="muted small">Loading…</p></section>
     <section class="panel tide" id="tide"><h2>Tide</h2><p class="muted small">Loading…</p></section>
   </div>
 
@@ -191,7 +196,7 @@ footer p{margin:0}
 
   <footer>
     <p><strong>Not a safety service.</strong> Scores are a guide from forecast models. Offshore wind at the beaches blows you out into Falmouth Bay; if in doubt, don't go. Emergency on the water: call 999 or VHF 16 and ask for the Coastguard.</p>
-    <p><strong>Where the data comes from.</strong> Wind, gusts and daylight from the UK Met Office model (UKV, about 2 km grid), through <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, used under CC BY 4.0. Swell and modelled tide from Open-Meteo Marine, under the same licence. Measured waves from the Porthleven buoy: real-time data from the Regional Coastal Monitoring Programme (<a href="https://coastalmonitoring.org/" target="_blank" rel="noopener">coastalmonitoring.org</a>), made freely available under the Open Government Licence; these are real-time data and are not quality-controlled. Measured wind from the RNAS Culdrose weather report (METAR), through <a href="https://aviationweather.gov/" target="_blank" rel="noopener">aviationweather.gov</a>. Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors under the ODbL, with map tiles by <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a> and seamarks from <a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a> (CC BY-SA 2.0).</p>
+    <p><strong>Where the data comes from.</strong> Wind, gusts and daylight from the UK Met Office model (UKV, about 2 km grid), through <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, used under CC BY 4.0. Swell and modelled tide from Open-Meteo Marine, under the same licence. Measured waves from the Porthleven and Looe Bay buoys: real-time data from the Regional Coastal Monitoring Programme (<a href="https://coastalmonitoring.org/" target="_blank" rel="noopener">coastalmonitoring.org</a>), made freely available under the Open Government Licence; these are real-time data and are not quality-controlled. Measured wind from the RNAS Culdrose weather report (METAR), through <a href="https://aviationweather.gov/" target="_blank" rel="noopener">aviationweather.gov</a>. Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors under the ODbL, with map tiles by <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a> and seamarks from <a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a> (CC BY-SA 2.0).</p>
     <p>The spot scores, notes and code are FAL Wing's own. Spot settings are set by hand and may be wrong. The tide is modelled, not an official prediction: not for navigation, and never for timing a crossing.</p>
     <div class="links">
       <a href="https://www.windfinder.com/forecast/pendennis_point_falmouth" target="_blank" rel="noopener">Windfinder Pendennis</a>
@@ -223,11 +228,16 @@ const LABEL_SIDE = {pendennis:"top", gylly:"bottom", swanpool:"top", mylor:"righ
 const SHORT = {pendennis:"Pendennis", helford:"Helford"};
 const BAY = {lat:50.11, lon:-5.02};          // marine point for swell and modelled tide
 const METAR_ID = "EGDR";                      // RNAS Culdrose
-/* Porthleven wave buoy (Regional Coastal Monitoring Programme). Request a free key for this site's
-   address at https://coastalmonitoring.org/ccoresources/api/ and paste it here. */
+/* Wave buoys (Regional Coastal Monitoring Programme). Request a free key for this site's
+   address at https://coastalmonitoring.org/ccoresources/api/ and paste it here. One key covers both. */
 const CCO_KEY = "";
-const CCO_SENSOR = "Porthleven";
-const CCO_CHART = "https://coastalmonitoring.org/realtimedata/?chart=107&tab=waves";
+const BUOYS = [
+  {id:"porthleven", name:"Porthleven", sensor:"Porthleven", chart:107, side:"20 mi W",
+   note:"West of the Lizard. Reads Atlantic swell before the Lizard blocks most of it from the bay; a rise here is an early warning."},
+  {id:"looe", name:"Looe Bay", sensor:"Looe Bay", chart:98, side:"30 mi E",
+   note:"Inside the Channel, east of Falmouth. Closer to what reaches Gylly and Swanpool in S and SE swell."}
+];
+const buoyChart = b => `https://coastalmonitoring.org/realtimedata/?chart=${b.chart}&tab=waves`;
 const TZ = "Europe/London";
 const REFRESH_MS = 10*60*1000;
 
@@ -331,14 +341,15 @@ async function loadLive(){
     `&hourly=wave_height,wave_direction,wave_period,swell_wave_height,swell_wave_direction,swell_wave_period,wind_wave_height,sea_level_height_msl,sea_surface_temperature`+
     `&timezone=${encodeURIComponent(TZ)}&forecast_days=4`;
   const mt=`https://aviationweather.gov/api/data/metar?ids=${METAR_ID}&format=json&hours=3`;
-  const by = CCO_KEY ? `https://coastalmonitoring.org/observations/waves/latest.geojson?key=${CCO_KEY}&sensor=${CCO_SENSOR}&duration=24` : null;
-  const [w,m,o,bq]=await Promise.allSettled([getJSON(wx),getJSON(mr),getJSON(mt), by?getJSON(by):Promise.resolve(null)]);
+  const buoyUrl = b => `https://coastalmonitoring.org/observations/waves/latest.geojson?key=${CCO_KEY}&sensor=${encodeURIComponent(b.sensor)}&duration=24`;
+  const [w,m,o,...bq]=await Promise.allSettled([getJSON(wx),getJSON(mr),getJSON(mt),
+    ...BUOYS.map(b=>CCO_KEY?getJSON(buoyUrl(b)):Promise.resolve(null))]);
   if(w.status!=="fulfilled") throw w.reason;
   return {
     wx: Array.isArray(w.value)?w.value:[w.value],
     marine: m.status==="fulfilled"?m.value:null,
     metar: o.status==="fulfilled"&&Array.isArray(o.value)&&o.value.length?o.value[0]:null,
-    buoy: bq.status==="fulfilled"?parseBuoy(bq.value):{error:bq.reason&&bq.reason.message||"request blocked"},
+    buoys: bq.map(r=>r.status==="fulfilled"?parseBuoy(r.value):{error:r.reason&&r.reason.message||"request blocked"}),
     errors:[m,o].filter(x=>x.status==="rejected").map(x=>x.reason&&x.reason.message||"request blocked"),
     example:false, at:new Date()
   };
@@ -359,12 +370,12 @@ function makeExample(){
     swell_wave_height:times.map((t,i)=>0.7+0.4*Math.sin(i/12)),swell_wave_direction:times.map(()=>200),swell_wave_period:times.map(()=>10),
     wind_wave_height:times.map(()=>0.4),sea_level_height_msl:times.map((t,i)=>2.2*Math.cos(2*Math.PI*i/12.42)),sea_surface_temperature:times.map(()=>14.5)}};
   const metar={wdir:230,wspd:15,wgst:22,temp:13,obsTime:Math.floor(now.getTime()/1000)-1200,rawOb:"EGDR EXAMPLE 23015G22KT"};
-  const buoy={series:Array.from({length:48},(_,i)=>({t:new Date(now.getTime()-(47-i)*1800000),hs:1.6+0.5*Math.sin(i/10),hmax:2.6,tp:11,tz:6.5,dir:245,sst:14.2})),props:[]};
-  buoy.latest=buoy.series[buoy.series.length-1];
-  return {wx,marine,metar,buoy,errors:[],example:true,at:now};
+  const fake=(hs0,dir,tp)=>{const b={series:Array.from({length:48},(_,i)=>({t:new Date(now.getTime()-(47-i)*1800000),hs:hs0+0.4*hs0*Math.sin(i/10),hmax:hs0*1.7,tp,tz:6.5,dir,sst:14.2})),props:[]};b.latest=b.series[b.series.length-1];return b;};
+  const buoys=[fake(1.6,245,11),fake(0.6,215,10)];
+  return {wx,marine,metar,buoys,errors:[],example:true,at:now};
 }
 
-/* ---------- Porthleven buoy ---------- */
+/* ---------- Wave buoys ---------- */
 function pickNum(props, names){
   const keys=Object.keys(props);
   for(const n of names){const k=keys.find(k=>k.toLowerCase()===n);
@@ -392,30 +403,37 @@ function parseBuoy(gj){
   return {series, latest:series[series.length-1]||null, props};
 }
 function renderBuoy(B){
-  const el=$("buoy"), b=B.raw.buoy;
-  const link=`<a href="${CCO_CHART}" target="_blank" rel="noopener">Open the buoy chart</a>`;
-  let html=`<h2>Porthleven buoy</h2>`;
+  const el=$("buoy"), data=B.raw.buoys||[];
+  let html=`<h2>Wave buoys</h2>`;
   if(!CCO_KEY&&!B.raw.example){
-    el.innerHTML=html+`<p class="small">Live readings need a free API key from the Channel Coastal Observatory. ${link} meanwhile.</p>`;return;}
-  if(!b||b.error||!b.latest){
-    const why=b&&b.error?b.error:(b&&b.props&&b.props.length?`unrecognised fields: ${b.props.slice(0,8).join(", ")}`:"no recent readings");
-    el.innerHTML=html+`<p class="small">Buoy data didn't load (${why.replace(/</g,"&lt;")}). ${link}.</p>`;return;}
-  const L=b.latest, age=Math.round((Date.now()-L.t)/60000);
-  const S=b.series, W=300, H=56, pad=4;
-  const hsMax=Math.max(...S.map(x=>x.hs),0.5), t0=S[0].t.getTime(), t1=Math.max(S[S.length-1].t.getTime(),t0+1);
-  const X=t=>pad+(t-t0)/(t1-t0)*(W-2*pad), Y=v=>H-pad-v/hsMax*(H-2*pad-6);
-  const line=S.map((x,i)=>`${i?"L":"M"}${X(x.t.getTime()).toFixed(1)} ${Y(x.hs).toFixed(1)}`).join(" ");
-  const ex=X(L.t.getTime()), ey=Y(L.hs);
-  html+=`<div class="kv">
-      <div><span class="v">${r1(L.hs)}<small> m</small></span><span class="k">Height (Hs)</span></div>
-      <div><span class="v">${r0(L.tp)}<small> s</small></span><span class="k">Peak period</span></div>
-      <div><span class="v">${compass(L.dir)}</span><span class="k">${L.dir!=null?"From "+r0(L.dir)+"°":"Direction"}</span></div></div>
-    ${S.length>2?`<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Wave height at Porthleven over the last day">
-      <path d="${line} L${ex.toFixed(1)} ${H} L${X(t0).toFixed(1)} ${H} Z" fill="var(--sea-soft)"/>
-      <path d="${line}" fill="none" stroke="var(--sea)" stroke-width="2"/>
-      <circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="3.5" fill="var(--signal)"/></svg>`:""}
-    <p class="small muted">Measured ${age<90?age+" min":Math.round(age/60)+" h"} ago${L.hmax!=null?`, biggest wave ${r1(L.hmax)} m`:""}${L.sst!=null?`, sea ${r1(L.sst)} °C`:""}. West of the Lizard, so it reads the Atlantic swell before the Lizard blocks most of it from Falmouth Bay. Last 24 h shown. ${link}.</p>`;
-  el.innerHTML=html;
+    html+=`<p class="small">Live readings need a free API key from the Channel Coastal Observatory. Meanwhile: ${BUOYS.map(b=>`<a href="${buoyChart(b)}" target="_blank" rel="noopener">${b.name}</a>`).join(" · ")}.</p>`;
+    el.innerHTML=html; return;}
+  // one height scale for both lines so they compare at a glance
+  const allHs=data.flatMap(b=>b&&b.series?b.series.map(x=>x.hs):[]);
+  const hsMax=Math.max(0.5,...allHs);
+  const blocks=BUOYS.map((cfg,k)=>{
+    const b=data[k], link=`<a href="${buoyChart(cfg)}" target="_blank" rel="noopener">chart</a>`;
+    const head=`<h3>${cfg.name}<span>${cfg.side}</span></h3>`;
+    if(!b||b.error||!b.latest){
+      const why=b&&b.error?b.error:(b&&b.props&&b.props.length?`unrecognised fields: ${b.props.slice(0,8).join(", ")}`:"no recent readings");
+      return `<div class="buoy">${head}<p class="small">Didn't load (${String(why).replace(/</g,"&lt;")}). Open the ${link}.</p></div>`;}
+    const L=b.latest, age=Math.round((Date.now()-L.t)/60000), S=b.series, W=300, H=48, pad=4;
+    const t0=S[0].t.getTime(), t1=Math.max(S[S.length-1].t.getTime(),t0+1);
+    const X=t=>pad+(t-t0)/(t1-t0)*(W-2*pad), Y=v=>H-pad-v/hsMax*(H-2*pad-4);
+    const line=S.map((x,i)=>`${i?"L":"M"}${X(x.t.getTime()).toFixed(1)} ${Y(x.hs).toFixed(1)}`).join(" ");
+    const ex=X(L.t.getTime()), ey=Y(L.hs);
+    return `<div class="buoy">${head}
+      <div class="kv">
+        <div><span class="v">${r1(L.hs)}<small> m</small></span><span class="k">Height (Hs)</span></div>
+        <div><span class="v">${r0(L.tp)}<small> s</small></span><span class="k">Peak period</span></div>
+        <div><span class="v">${compass(L.dir)}</span><span class="k">${L.dir!=null?"From "+r0(L.dir)+"°":"Direction"}</span></div></div>
+      ${S.length>2?`<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Wave height at ${cfg.name} over the last day">
+        <path d="${line} L${ex.toFixed(1)} ${H} L${X(t0).toFixed(1)} ${H} Z" fill="var(--sea-soft)"/>
+        <path d="${line}" fill="none" stroke="var(--sea)" stroke-width="2"/>
+        <circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="3.5" fill="var(--signal)"/></svg>`:""}
+      <p class="small muted">${age<90?age+" min":Math.round(age/60)+" h"} ago${L.hmax!=null?`, biggest ${r1(L.hmax)} m`:""}${L.sst!=null?`, sea ${r1(L.sst)} °C`:""}. ${cfg.note} Open the ${link}.</p></div>`;
+  }).join("");
+  el.innerHTML=html+`<div class="buoys">${blocks}</div><p class="small muted">Last 24 h, both on the same height scale.</p>`;
 }
 
 /* ---------- Build the per-hour table ---------- */
