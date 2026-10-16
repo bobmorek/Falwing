@@ -17,7 +17,7 @@
 /* Layout: single phone-first column. Verdict up top, then live obs and sea state, then one card per spot, then the 3-day windows. */
 :root{
   --bg:#EEF3F4; --surface:#FFFFFF; --ink:#0B2530; --muted:#4F6670; --line:#CBD8DC;
-  --sea:#2A7FA8; --sea-soft:#D6E9F1; --land:#E9E4D8; --coast:#6F858D; --signal:#E0A400;
+  --sea:#2A7FA8; --sea-soft:#D6E9F1; --land:#E9E4D8; --coast:#6F858D; --foam:#FFFFFF; --signal:#E0A400;
   --good:#1F8A5B; --ok:#C88A00; --poor:#8A9AA0; --bad:#C2412D;
   --display:"Barlow Condensed","Arial Narrow",sans-serif;
   --body:"Source Sans 3","Segoe UI",Helvetica,Arial,sans-serif;
@@ -25,7 +25,7 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0A1A22; --surface:#10262F; --ink:#E6F0F2; --muted:#93AAB2; --line:#21414C;
-  --sea:#5BB3D9; --sea-soft:#0F2E3A; --land:#1B2A2F; --coast:#5E7D88; --signal:#FFC233;
+  --sea:#5BB3D9; --sea-soft:#0F2E3A; --land:#1B2A2F; --coast:#5E7D88; --foam:#DDF3FF; --foam:#DDF3FF; --signal:#FFC233;
   --good:#3CC488; --ok:#E6AE2E; --poor:#6E8189; --bad:#F06A52; color-scheme:dark;}}
 :root[data-theme="dark"]{
   --bg:#0A1A22; --surface:#10262F; --ink:#E6F0F2; --muted:#93AAB2; --line:#21414C;
@@ -175,7 +175,7 @@ footer p{margin:0}
       <input id="mapHour" type="range" min="0" max="24" step="1" value="0" aria-label="Hours ahead shown on the map">
       <span class="lab" id="mapHourLabel">Now</span>
     </div>
-    <p class="mapnote">Arrows show where the wind is coming from. Moving lines show the bay swell direction, spaced by period; they are illustrative and ignore shelter. Tap a spot for its forecast, or drag the slider to look up to 24 hours ahead.</p>
+    <p class="mapnote">Arrows show where the wind is coming from. Moving lines show the swell refracting over the real seabed: they slow and bend in shallow water, wrap round points and break white on exposed shore. A physics sketch, not a forecast. Tap a spot for its forecast, or drag the slider to look up to 24 hours ahead.</p>
   </section>
 
   <details class="settings" id="settings">
@@ -204,7 +204,7 @@ footer p{margin:0}
 
   <footer>
     <p><strong>Not a safety service.</strong> Scores are a guide from forecast models. Offshore wind at the beaches blows you out into Falmouth Bay; if in doubt, don't go. Emergency on the water: call 999 or VHF 16 and ask for the Coastguard.</p>
-    <p><strong>Where the data comes from.</strong> Wind, gusts and daylight from the UK Met Office model (UKV, about 2 km grid), through <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, used under CC BY 4.0. Swell and modelled tide from Open-Meteo Marine, under the same licence. Measured waves from the Porthleven and Looe Bay buoys: real-time data from the Regional Coastal Monitoring Programme (<a href="https://coastalmonitoring.org/" target="_blank" rel="noopener">coastalmonitoring.org</a>), made freely available under the Open Government Licence; these are real-time data and are not quality-controlled. Measured wind from the RNAS Culdrose weather report (METAR), through <a href="https://aviationweather.gov/" target="_blank" rel="noopener">aviationweather.gov</a>. Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors under the ODbL, with map tiles by <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a> and seamarks from <a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a> (CC BY-SA 2.0).</p>
+    <p><strong>Where the data comes from.</strong> Wind, gusts and daylight from the UK Met Office model (UKV, about 2 km grid), through <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, used under CC BY 4.0. Swell and modelled tide from Open-Meteo Marine, under the same licence. Seabed depths for the swell lines from <a href="https://emodnet.ec.europa.eu/en/bathymetry" target="_blank" rel="noopener">EMODnet Bathymetry</a>, CC BY 4.0. Measured waves from the Porthleven and Looe Bay buoys: real-time data from the Regional Coastal Monitoring Programme (<a href="https://coastalmonitoring.org/" target="_blank" rel="noopener">coastalmonitoring.org</a>), made freely available under the Open Government Licence; these are real-time data and are not quality-controlled. Measured wind from the RNAS Culdrose weather report (METAR), through <a href="https://aviationweather.gov/" target="_blank" rel="noopener">aviationweather.gov</a>. Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors under the ODbL, with map tiles by <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a> and seamarks from <a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a> (CC BY-SA 2.0).</p>
     <p>The spot scores, notes and code are FAL Wing's own. Spot settings are set by hand and may be wrong. The tide is modelled, not an official prediction: not for navigation, and never for timing a crossing.</p>
     <div class="links">
       <a href="https://www.windfinder.com/forecast/pendennis_point_falmouth" target="_blank" rel="noopener">Windfinder Pendennis</a>
@@ -215,6 +215,7 @@ footer p{margin:0}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="js/swell.js"></script>
 <script>
 "use strict";
 /* ---------- Spot config: edit freely. facing = compass bearing the shore looks out to sea. ---------- */
@@ -509,6 +510,7 @@ const PLACES=[
 ];
 const VIEW=[[50.072,-5.185],[50.205,-4.935]];   // first view: Helford to St Mawes
 let STREET=null, SEAMARKS=null, SWELL_LAYER=null, SWELL_NOW=null;
+function hexRgb(h){h=(h||"").trim().replace("#","");if(h.length===3)h=h.split("").map(c=>c+c).join("");const v=parseInt(h,16);return isNaN(v)?[42,127,168]:[v>>16&255,v>>8&255,v&255];}
 
 /* Animated swell crests drawn on a canvas below the land, so they only show on water. Illustrative:
    spacing and speed scale with period, strength with height; refraction and shelter are not modelled. */
@@ -530,26 +532,15 @@ const SwellLayer = (typeof L!=="undefined" && L.Layer) ? L.Layer.extend({
   _tick(t){ this._raf=requestAnimationFrame(this._tick);
     if(this._reduce||!this._visible||document.hidden||t-this._last<33) return; this._last=t; this._draw(t);},
   _draw(t){
-    const ctx=this._ctx, sz=this._map.getSize(), w=sz.x, h=sz.y; ctx.clearRect(0,0,w,h);
-    const sw=SWELL_NOW; if(!sw||sw.hs==null||sw.dir==null||!sw.tp) return;
-    const b=(sw.dir+180)*Math.PI/180, vx=Math.sin(b), vy=-Math.cos(b), ux=Math.cos(b), uy=Math.sin(b);
-    const sp=clamp(14+2.6*sw.tp,22,64), speed=sp/(sw.tp*0.35), phase=((t/1000)*speed)%sp;
-    const D=Math.hypot(w,h), n=Math.ceil(D/(2*sp))+1;
-    const col=getComputedStyle(document.documentElement).getPropertyValue("--sea").trim()||"#2A7FA8";
-    ctx.strokeStyle=col; ctx.lineCap="round";
-    ctx.globalAlpha=0.16+0.34*Math.min(sw.hs/2.5,1); ctx.lineWidth=1+Math.min(sw.hs,3)*0.6;
-    ctx.setLineDash([22+sw.hs*12, 10+sp*0.4]);
-    for(let k=-n;k<=n;k++){
-      const d=k*sp+phase, cx=w/2+vx*d, cy=h/2+vy*d;
-      ctx.lineDashOffset=(k*41)%97; ctx.beginPath();
-      for(let s=-D/2;s<=D/2;s+=14){
-        const wob=Math.sin(s*0.018+k*1.7)*2.2;
-        const x=cx+ux*s+vx*wob, y=cy+uy*s+vy*wob;
-        if(s===-D/2) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-      }
-      ctx.stroke();
-    }
-    ctx.globalAlpha=1; ctx.setLineDash([]);
+    const ctx=this._ctx, sz=this._map.getSize(); ctx.clearRect(0,0,sz.x,sz.y);
+    const sw=SWELL_NOW; if(!sw||!window.FalSwell||!FalSwell.ready()) return;
+    // draw one crest every m periods so they sit ~26 px apart offshore at this zoom
+    const z=this._map.getZoom(), mpp=156543.03*Math.cos(50.13*Math.PI/180)/Math.pow(2,z);
+    const L0=9.81*sw.tp*sw.tp/(2*Math.PI), m=Math.max(1,Math.round(26*mpp/L0)), Tshow=m*sw.tp;
+    const now=t/1000, dt=this._prev?Math.min(0.1,now-this._prev):0; this._prev=now;
+    this._phase=((this._phase||0)+dt*Tshow/3.2)%(Tshow*1000);      // a crest moves one spacing in ~3 s
+    const css=getComputedStyle(document.documentElement);
+    FalSwell.draw(ctx,this._map,this._phase,Tshow,hexRgb(css.getPropertyValue("--sea")),hexRgb(css.getPropertyValue("--foam")));
   }
 }) : null;
 
@@ -577,6 +568,10 @@ function initMap(){
     L.geoJSON(c.coast,{pane:"land",interactive:false,style:{className:"coast",weight:1.2,opacity:1,fill:false}}).addTo(chart);
     const bb=c.bbox; MAP.setMaxBounds([[bb[1],bb[0]],[bb[3],bb[2]]]).options.maxBoundsViscosity=0.8;
     MAP.attributionControl.addAttribution('Coastline &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors');
+    if(window.FalSwell) fetch("data/bathy.json").then(r=>r.ok?r.json():null).catch(()=>null).then(b=>{
+      setTimeout(()=>{ FalSwell.init(c,b); if(SWELL_NOW) FalSwell.setSwell(SWELL_NOW);
+        if(b) MAP.attributionControl.addAttribution('Bathymetry: <a href="https://emodnet.ec.europa.eu/en/bathymetry">EMODnet</a>'); },50);
+    });
   }).catch(()=>{ STREET.addTo(MAP); });   // no outline file yet: fall back to the street map
 
   PLACES.forEach(([n,la,lo,water])=>L.marker([la,lo],{pane:"labels",interactive:false,keyboard:false,
@@ -626,7 +621,9 @@ function updateMap(){
   const mh=B.mh;
   if(mh&&B.midx[t]!=null){
     const hs=mh.wave_height[B.midx[t]], tp=mh.wave_period[B.midx[t]], dir=mh.wave_direction[B.midx[t]];
-    SWELL_NOW={hs,tp,dir}; if(SWELL_LAYER&&SWELL_LAYER._map) SWELL_LAYER._draw(performance.now());
+    const sh=mh.swell_wave_height&&mh.swell_wave_height[B.midx[t]];
+    SWELL_NOW = sh!=null&&sh>=0.25 ? {hs:sh,tp:mh.swell_wave_period[B.midx[t]],dir:mh.swell_wave_direction[B.midx[t]]} : {hs,tp,dir};
+    if(window.FalSwell&&SWELL_NOW.dir!=null&&SWELL_NOW.tp) FalSwell.setSwell(SWELL_NOW);
     const lab=`<b>Bay swell</b> ${r1(hs)} m &middot; ${r0(tp)} s &middot; from ${compass(dir)}`;
     if(!bayMarker){bayMarker=L.control({position:"bottomleft"});
       bayMarker.onAdd=()=>{const d=L.DomUtil.create("div","leaflet-tooltip mk-lab swell-chip");return d;};

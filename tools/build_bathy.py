@@ -3,7 +3,7 @@ Data: EMODnet Bathymetry Consortium, used under CC BY 4.0. Run by .github/workfl
 import base64, io, json, sys, urllib.request
 import numpy as np, tifffile
 
-W, S, E, N = -5.25, 50.00, -4.85, 50.28
+W, S, E, N = -5.30, 49.93, -4.85, 50.28
 RES = 1/960                                  # 1/16 arc-minute, the DTM's native grid
 nx, ny = round((E-W)/RES), round((N-S)/RES)
 urls = [

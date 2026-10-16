@@ -4,8 +4,8 @@ import json, sys, time, urllib.parse, urllib.request
 from shapely.geometry import LineString, box, Point, mapping
 from shapely.ops import unary_union, polygonize, linemerge
 
-S, W, N, E = 50.00, -5.25, 50.28, -4.85          # data box (lat/lon)
-SEA_SEEDS = [(-4.95, 50.10), (-5.00, 50.03)]     # (lon, lat) points known to be open sea
+S, W, N, E = 49.93, -5.30, 50.28, -4.85          # data box (lat/lon)
+SEA_SEEDS = [(-4.95, 50.10), (-5.00, 50.03), (-5.28, 49.94)]     # (lon, lat) points known to be open sea
 TOL = 0.00006                                     # simplify tolerance, degrees (~5 m)
 
 q = f'[out:json][timeout:120];way["natural"="coastline"]({S},{W},{N},{E});out geom;'
